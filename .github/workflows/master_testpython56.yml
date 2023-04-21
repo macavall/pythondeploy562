@@ -9,14 +9,34 @@ on:
     branches:
       - master
   workflow_dispatch:
+    inputs:
+      # This is the path of your Azure Function in Git.  
+      GIT_FunctionApp_Name:
+        description: 'Provide the Function App Name'
+        required: true
+        default: 'testpython56'
+        
+      GIT_FunctionApp_URL:
+        description: 'Provide the Function App URL'
+        required: true
+        default: 'https://testpython56'
+        
+       # This is the path of your Function app in Git.
+      GIT_FunctionApp_PATH:
+        description: 'Relative path for Function'
+        required: true
+        default: '/FunctionApp/Func_Balance/ServiceBusFunc/'
 
-env:
-  AZURE_FUNCTIONAPP_PACKAGE_PATH: '.' # set this to the path to your web app project, defaults to the repository root
-  PYTHON_VERSION: '3.10' # set this to the python version to use (supports 3.6, 3.7, 3.8)
+#env:
+  #AZURE_FUNCTIONAPP_PACKAGE_PATH: '.' # set this to the path to your web app project, defaults #to the repository root
+  #PYTHON_VERSION: '3.10' # set this to the python version to use (supports 3.6, 3.7, 3.8)
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      AZURE_FUNCTIONAPP_PACKAGE_PATH: ${{ github.workspace }}/${{ github.event.inputs.GIT_FunctionApp_PATH }} # set this to the path to your web app project, defaults to the repository root
+      PYTHON_VERSION: '3.10' # set this to the python version to use (supports  3.9,3.10)
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
@@ -25,14 +45,21 @@ jobs:
         uses: actions/setup-python@v1
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Create and start virtual environment
-        run: |
-          python -m venv venv
-          source venv/bin/activate
-
+		  
+      #Install All the Required Depenedent Modules
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: |
+          pushd $GITHUB_WORKSPACE/${{ github.event.inputs.GIT_FunctionApp_PATH }}
+          pip install -r requirements.txt --target=".python_packages/lib/site-packages"
+          popd
+
+      #- name: Create and start virtual environment
+        #run: |
+          #python -m venv venv
+          #source venv/bin/activate
+
+      #- name: Install dependencies
+        #run: pip install -r requirements.txt
         
       # Optional: Add step to run tests here
 
@@ -41,7 +68,7 @@ jobs:
         with:
           name: python-app
           path: |
-            . 
+            ${{ github.workspace }}/${{ github.event.inputs.GIT_FunctionApp_PATH }}
             !venv/
 
   deploy:
@@ -49,22 +76,22 @@ jobs:
     needs: build
     environment:
       name: 'Production'
-      url: ${{ steps.deploy-to-function.outputs.webapp-url }}
+      url: ${{ github.event.inputs.GIT_FunctionApp_URL }}
 
     steps:
       - name: Download artifact from build job
         uses: actions/download-artifact@v2
         with:
           name: python-app
-          path: .
+          path: ${{ github.workspace }}/${{
+		  github.event.inputs.GIT_FunctionApp_PATH }}
 
       - name: 'Deploy to Azure Functions'
         uses: Azure/functions-action@v1
         id: deploy-to-function
         with:
-          app-name: 'testpython56'
-          slot-name: 'Production'
-          package: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_479169A4A5AF464F899C1CAACB162ADD }}
-          scm-do-build-during-deployment: true
-          enable-oryx-build: true
+          app-name: ${{ github.event.inputs.GIT_FunctionApp_Name }}
+          package: ${{ github.workspace }}/${{ github.event.inputs.GIT_FunctionApp_PATH }}
+		  publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_479169A4A5AF464F899C1CAACB162ADD }}
+          #scm-do-build-during-deployment: true
+          #enable-oryx-build: true
