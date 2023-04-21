@@ -30,13 +30,14 @@ on:
 #env:
   #AZURE_FUNCTIONAPP_PACKAGE_PATH: '.' # set this to the path to your web app project, defaults #to the repository root
   #PYTHON_VERSION: '3.10' # set this to the python version to use (supports 3.6, 3.7, 3.8)
+  
+  env:
+    AZURE_FUNCTIONAPP_PACKAGE_PATH: ${{ github.workspace }}/${{ github.event.inputs.GIT_FunctionApp_PATH }} # set this to the path to your web app project, defaults to the repository root
+    PYTHON_VERSION: '3.10' # set this to the python version to use (supports  3.9,3.10)
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      AZURE_FUNCTIONAPP_PACKAGE_PATH: ${{ github.workspace }}/${{ github.event.inputs.GIT_FunctionApp_PATH }} # set this to the path to your web app project, defaults to the repository root
-      PYTHON_VERSION: '3.10' # set this to the python version to use (supports  3.9,3.10)
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
